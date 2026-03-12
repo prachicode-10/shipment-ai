@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
+    LogOut,
+    Truck,
+    LayoutDashboard,
     Search, 
     Bell, 
     Settings, 
@@ -25,6 +28,16 @@ import {
     Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+const NavItem = ({ icon: Icon, label, active, onClick }) => (
+    <button 
+        onClick={onClick}
+        className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group ${active ? 'bg-primary/20 text-primary shadow-glow' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+    >
+        <Icon size={20} />
+        <span className="text-sm font-bold uppercase tracking-widest">{label}</span>
+    </button>
+);
 
 // MOCK DATA
 const INITIAL_SHIPMENTS = [
@@ -79,6 +92,7 @@ const StatCard = ({ title, value, description, icon: Icon, color }) => {
 
 const ShipmentMonitoring = () => {
     const navigate = useNavigate();
+    const [user, setUser] = useState(null);
     const [shipments, setShipments] = useState(INITIAL_SHIPMENTS);
     const [selectedShipment, setSelectedShipment] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -102,10 +116,19 @@ const ShipmentMonitoring = () => {
     };
 
     useEffect(() => {
+        const storedUser = localStorage.getItem('currentUser');
+        if (storedUser) setUser(JSON.parse(storedUser));
+        else navigate('/login');
+
         // Simulating load
         const timer = setTimeout(() => setIsLoading(false), 1000);
         return () => clearTimeout(timer);
-    }, []);
+    }, [navigate]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('currentUser');
+        navigate('/');
+    };
 
     const filteredShipments = shipments.filter(s => {
         const matchesSearch = s.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -152,71 +175,107 @@ const ShipmentMonitoring = () => {
         return '#ef4444'; // Rose
     };
 
+    if (!user) return null;
+
     return (
-        <div className="min-h-screen bg-[#0B1220] text-slate-300 font-sans selection:bg-primary/30 overflow-x-hidden relative">
-            {/* Background Decorative Elements */}
-            <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10">
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -mr-48 -mt-48" />
-                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -ml-24 -mb-24" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(17,24,39,0)_0%,#0B1220_100%)]" />
-            </div>
-
-            {/* Top Navigation */}
-            <nav className="h-20 fixed top-0 left-0 right-0 z-50 bg-[#0B1220]/80 backdrop-blur-xl border-b border-white/5 px-8 flex items-center justify-between shadow-2xl">
-                <div 
-                    className="flex items-center gap-3 cursor-pointer group"
-                    onClick={() => navigate('/dashboard')}
-                >
-                    <div className="bg-primary p-2.5 rounded-2xl shadow-lg shadow-blue-500/40 group-hover:scale-110 transition-transform">
-                        <ShieldCheck className="text-white w-5 h-5" />
+        <div className="min-h-screen bg-[#0B1220] text-slate-300 font-sans selection:bg-primary/30 overflow-hidden flex">
+            {/* Sidebar Navigation */}
+            <aside className="w-64 bg-[#0A0A0A] border-r border-white/5 flex flex-col py-8 z-50 hidden lg:flex">
+                <div className="px-6 mb-12">
+                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
+                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-glow group-hover:rotate-12 transition-transform">
+                            <ShieldCheck className="text-white" size={20} />
+                        </div>
+                        <span className="font-black text-lg tracking-tighter text-white">
+                            INNOVATE X AI
+                        </span>
                     </div>
-                    <span className="font-black text-xl tracking-tighter text-white">
-                        INNOVATE X AI
-                    </span>
+                </div>
+                
+                <nav className="flex-grow px-4 space-y-2">
+                    <NavItem icon={LayoutDashboard} label="Overview" onClick={() => navigate('/dashboard')} />
+                    <NavItem icon={Activity} label="Analytics" onClick={() => navigate('/analytics')} />
+                    <NavItem icon={Truck} label="Shipments" active />
+                    <NavItem icon={Settings} label="Settings" />
+                </nav>
+
+                <div className="mt-6 px-4">
+                    <button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-500 hover:text-red-400 hover:bg-red-400/5 transition-all group">
+                        <LogOut size={20} />
+                        <span className="text-sm font-bold uppercase tracking-widest">Logout</span>
+                    </button>
                 </div>
 
-                <div className="flex-grow max-w-xl mx-8 relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Search shipments..." 
-                        className="w-full bg-[#111827]/50 border border-white/5 rounded-2xl py-2.5 pl-12 pr-4 text-sm outline-none focus:bg-[#111827] focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-600 text-slate-200"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-
-                <div className="flex items-center gap-6">
-                    <button 
-                        onClick={() => showToast("All systems operational", "success")}
-                        className="relative p-2 text-slate-500 hover:text-primary transition-colors"
-                    >
-                        <Bell size={22} />
-                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#0B1220]" />
-                    </button>
-                    <button 
-                        onClick={() => navigate('/analytics')}
-                        className="p-2 text-slate-500 hover:text-primary transition-colors flex items-center gap-2 group"
-                        title="Analytics"
-                    >
-                        <Activity size={22} />
-                        <span className="text-[10px] font-black uppercase tracking-widest hidden xl:block opacity-0 group-hover:opacity-100 transition-opacity">Analytics</span>
-                    </button>
-                    <button 
-                        onClick={() => showToast("Preferences module loading...", "info")}
-                        className="p-2 text-slate-500 hover:text-primary transition-colors"
-                    >
-                        <Settings size={22} />
-                    </button>
-                    <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 p-[1.5px] cursor-pointer hover:scale-105 transition-transform shadow-lg shadow-blue-500/40">
-                        <div className="w-full h-full rounded-[0.9rem] bg-[#111827] flex items-center justify-center text-[10px] font-black text-primary">
-                            JD
+                <div className="mt-12 px-6 pt-8 border-t border-white/5">
+                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/10">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center font-black text-white text-sm">
+                            {(user.fullname || user.name || 'U').charAt(0)}
+                        </div>
+                        <div className="overflow-hidden">
+                            <p className="text-[10px] font-black text-white uppercase truncate">{user.fullname || user.name || 'User'}</p>
+                            <p className="text-[8px] font-bold text-primary uppercase tracking-widest leading-none mt-1 truncate">Logistics Lead</p>
                         </div>
                     </div>
                 </div>
-            </nav>
+            </aside>
 
-            <main className="pt-32 pb-20 px-8 max-w-[1600px] mx-auto">
+            {/* Main Content Area */}
+            <main className="flex-grow overflow-y-auto p-8 relative">
+                {/* Background Decorative Elements */}
+                <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10">
+                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -mr-48 -mt-48" />
+                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -ml-24 -mb-24" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(17,24,39,0)_0%,#0B1220_100%)]" />
+                </div>
+
+                {/* Top Navigation Bar */}
+                <nav className="flex items-center justify-between mb-12 bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-3xl shadow-2xl relative z-40">
+                    <div 
+                        className="flex items-center gap-3 cursor-pointer group lg:hidden"
+                        onClick={() => navigate('/dashboard')}
+                    >
+                        <div className="bg-primary p-2.5 rounded-2xl shadow-lg shadow-blue-500/40 group-hover:scale-110 transition-transform">
+                            <ShieldCheck className="text-white w-5 h-5" />
+                        </div>
+                        <span className="font-black text-xl tracking-tighter text-white">
+                            INNOVATE X AI
+                        </span>
+                    </div>
+
+                    <div className="flex-grow max-w-xl relative group ml-4 lg:ml-0">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
+                        <input 
+                            type="text" 
+                            placeholder="Search shipments..." 
+                            className="w-full bg-[#111827]/50 border border-white/5 rounded-2xl py-2.5 pl-12 pr-4 text-sm outline-none focus:bg-[#111827] focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-600 text-slate-200"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    
+                    <div className="flex items-center gap-6 ml-6">
+                        <div className="relative group cursor-pointer hover:text-primary transition-colors">
+                            <Bell size={20} />
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#111827] animate-pulse" />
+                        </div>
+                        <button 
+                            onClick={() => navigate('/analytics')}
+                            className="p-2 text-slate-500 hover:text-primary transition-colors flex items-center gap-2 group"
+                            title="Analytics"
+                        >
+                            <Activity size={22} />
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden xl:block opacity-0 group-hover:opacity-100 transition-opacity">Analytics</span>
+                        </button>
+                        <Settings size={20} className="cursor-pointer hover:text-primary transition-colors" />
+                        <div className="h-10 w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 p-[1.5px] cursor-pointer hover:scale-105 transition-transform shadow-lg shadow-blue-500/40">
+                            <div className="w-full h-full rounded-[0.9rem] bg-[#111827] flex items-center justify-center text-[10px] font-black text-primary">
+                                {(user.fullname || user.name || 'U').charAt(0)}
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+
+                <div className="pb-20 max-w-[1600px] mx-auto">
                 {/* Header */}
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
                     <motion.div 
@@ -453,7 +512,8 @@ const ShipmentMonitoring = () => {
                         </div>
                     </div>
                 </motion.section>
-            </main>
+            </div>
+        </main>
 
             {/* Side Panel */}
             <AnimatePresence>
