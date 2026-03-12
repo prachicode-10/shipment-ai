@@ -119,8 +119,8 @@ const Dashboard = () => {
                 {/* Header */}
                 <header className="flex justify-between items-center mb-12 relative z-10">
                     <div>
-                        <h1 className="text-4xl font-black text-white tracking-tighter italic">
-                            HELLO, <span className="text-primary">{(user.fullname || user.name || 'User').toUpperCase()}</span>
+                        <h1 className="text-2xl font-black text-white tracking-tighter italic uppercase">
+                            Hello, <span className="text-primary">{user.fullname || user.name || 'User'}</span>
                         </h1>
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">Intelligence Overview • {new Date().toLocaleDateString()}</p>
                     </div>
