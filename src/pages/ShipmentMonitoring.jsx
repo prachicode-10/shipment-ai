@@ -28,6 +28,10 @@ import {
     Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { getCityCoords } from '../utils/cityUtils.js';
+import ShipmentMap from '../components/ShipmentMap.jsx';
+
 
 const NavItem = ({ icon: Icon, label, active, onClick }) => (
     <button 
@@ -92,7 +96,13 @@ const StatCard = ({ title, value, description, icon: Icon, color }) => {
 
 const ShipmentMonitoring = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const stored = localStorage.getItem('currentUser');
+        if (stored) {
+            try { return JSON.parse(stored); } catch (e) { return null; }
+        }
+        return null;
+    });
     const [shipments, setShipments] = useState(INITIAL_SHIPMENTS);
     const [selectedShipment, setSelectedShipment] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -101,10 +111,50 @@ const ShipmentMonitoring = () => {
     const [notification, setNotification] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newShipment, setNewShipment] = useState({ origin: '', destination: '', carrier: 'DHL' });
+    const [availableCities, setAvailableCities] = useState([]);
+    const [citySearch, setCitySearch] = useState({ origin: '', destination: '' });
+    const [showCityDropdown, setShowCityDropdown] = useState({ origin: false, destination: false });
 
     const showToast = (message, type = 'info') => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 3000);
+    };
+
+    const handleSelectShipment = async (shipment) => {
+        setSelectedShipment(shipment);
+        try {
+            // Fetch live AI prediction for the selected shipment
+            const response = await axios.post('http://127.0.0.1:5000/api/predict', {
+                origin: shipment.origin,
+                destination: shipment.destination,
+                distance: shipment.distance,
+                weather: 'Medium', // In a real app, these would come from real-time APIs
+                traffic: 'Low',
+                portCongestion: 2,
+                carrierHistory: shipment.carrier
+            });
+            
+            setSelectedShipment(prev => ({
+                ...prev,
+                risk: parseFloat(response.data.risk) * 100,
+                recommendation: response.data.recommendation,
+                eta: `${response.data.eta} hrs`
+            }));
+            
+            // Update the main list with the new prediction
+            setShipments(prev => prev.map(s => 
+                s.id === shipment.id ? { 
+                    ...s, 
+                    risk: parseFloat(response.data.risk) * 100,
+                    recommendation: response.data.recommendation,
+                    eta: `${response.data.eta} hrs`
+                } : s
+            ));
+        } catch (error) {
+            console.error('AI Prediction Error:', error);
+        }
     };
 
     const handleAcknowledge = (id) => {
@@ -117,13 +167,50 @@ const ShipmentMonitoring = () => {
 
     useEffect(() => {
         const storedUser = localStorage.getItem('currentUser');
-        if (storedUser) setUser(JSON.parse(storedUser));
-        else navigate('/login');
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (err) {
+                console.error('Session error:', err);
+                navigate('/login');
+            }
+        } else {
+            navigate('/login');
+        }
 
-        // Simulating load
-        const timer = setTimeout(() => setIsLoading(false), 1000);
-        return () => clearTimeout(timer);
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const [shipmentsRes, citiesRes] = await Promise.all([
+                    axios.get('http://127.0.0.1:5000/api/shipments/history'),
+                    axios.get('http://127.0.0.1:5000/api/cities')
+                ]);
+
+                const mappedData = shipmentsRes.data.map(s => ({
+                    id: `SHP${s.shipment_id || Math.floor(Math.random() * 10000)}`,
+                    origin: s.origin,
+                    destination: s.destination,
+                    distance: s.distance,
+                    carrier: s.Carrier_History || 'Standard',
+                    eta: `${s.Eta_Hours || 'N/A'} hrs`,
+                    risk: s.delay === '1' ? 85 : 15,
+                    status: s.delay === '1' ? 'Delayed' : 'On Time',
+                    recommendation: 'Analyzing logistics path...'
+                }));
+                
+                setShipments(mappedData);
+                setAvailableCities(citiesRes.data);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showToast('Failed to connect to AI server', 'error');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
     }, [navigate]);
+
 
     const handleLogout = () => {
         localStorage.removeItem('currentUser');
@@ -175,7 +262,7 @@ const ShipmentMonitoring = () => {
         return '#ef4444'; // Rose
     };
 
-    if (!user) return null;
+    if (!user) return <div className="min-h-screen bg-[#0B1220]" />;
 
     return (
         <div className="min-h-screen bg-[#0B1220] text-slate-300 font-sans selection:bg-primary/30 overflow-hidden flex">
@@ -293,7 +380,7 @@ const ShipmentMonitoring = () => {
                     <motion.button 
                         whileHover={{ scale: 1.05, shadow: "0 10px 25px rgba(59, 130, 246, 0.4)" }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => showToast("Opening shipment gateway...", "info")}
+                        onClick={() => setIsAddModalOpen(true)}
                         className="px-8 py-4 bg-gradient-to-r from-primary to-blue-600 text-white rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-500/30 flex items-center gap-3 transition-all"
                     >
                         <Plus size={18} strokeWidth={3} />
@@ -436,7 +523,7 @@ const ShipmentMonitoring = () => {
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button 
-                                                        onClick={() => setSelectedShipment(shipment)}
+                                                        onClick={() => handleSelectShipment(shipment)}
                                                         className="p-2 bg-white/5 hover:bg-primary text-slate-500 hover:text-white rounded-xl transition-all border border-white/5"
                                                         title="View Details"
                                                     >
@@ -573,12 +660,12 @@ const ShipmentMonitoring = () => {
                                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Logistics Path</p>
                                         <div className="px-3 py-1 bg-primary/20 rounded-full text-[9px] font-black text-primary tracking-tighter border border-primary/20">LIVE TRACKING</div>
                                     </div>
-                                    <div className="h-48 w-full bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden flex items-center justify-center relative group">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
-                                        <div className="relative text-center space-y-2">
-                                            <Activity size={40} className="text-primary/40 mx-auto animate-bounce" />
-                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">Map Simulation Active</p>
-                                        </div>
+                                    <div className="h-64 w-full bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden relative group">
+                                        <ShipmentMap 
+                                            origin={getCityCoords(selectedShipment.origin)} 
+                                            destination={getCityCoords(selectedShipment.destination)}
+                                            risk={selectedShipment.risk / 100}
+                                        />
                                     </div>
                                 </div>
 
@@ -593,6 +680,11 @@ const ShipmentMonitoring = () => {
                                     <p className="text-slate-300 text-sm font-medium leading-relaxed italic border-l-2 border-primary/40 pl-4">
                                         "{selectedShipment.recommendation}"
                                     </p>
+                                    <div className="mt-4 flex items-center gap-3">
+                                        <div className={`px-2 py-1 rounded text-[8px] font-bold uppercase ${selectedShipment.risk > 60 ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
+                                            Confidence Score: {(100 - selectedShipment.risk / 2).toFixed(0)}%
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-6">
@@ -616,6 +708,191 @@ const ShipmentMonitoring = () => {
                             </div>
                         </motion.aside>
                     </>
+                )}
+            </AnimatePresence>
+
+            {/* Add Shipment Modal */}
+            <AnimatePresence>
+                {isAddModalOpen && (
+                    <div className="fixed inset-0 flex items-center justify-center z-[200] p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-[#111827] border border-white/10 w-full max-w-2xl rounded-[3rem] p-10 relative z-10 shadow-[0_0_100px_rgba(59,130,246,0.15)] overflow-visible"
+                        >
+                            <div className="absolute top-0 right-0 p-12 opacity-[0.03] -z-10 text-white">
+                                <Plus size={200} />
+                            </div>
+
+                            <div className="flex justify-between items-start mb-10">
+                                <div>
+                                    <h2 className="text-3xl font-black text-white tracking-tighter mb-2 italic">ADD SHIPMENT</h2>
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">Global Logistics Gateway</p>
+                                </div>
+                                <button onClick={() => setIsAddModalOpen(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500 transition-all">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6 mb-8">
+                                <div className="space-y-6">
+                                    <div className="space-y-2 relative">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Origin City</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Select Origin..."
+                                                className="w-full bg-[#0B1220] border border-white/5 rounded-2xl py-4 px-6 text-sm outline-none focus:border-primary transition-all text-white font-bold"
+                                                value={citySearch.origin || newShipment.origin}
+                                                onFocus={() => setShowCityDropdown({...showCityDropdown, origin: true})}
+                                                onChange={(e) => {
+                                                    setCitySearch({...citySearch, origin: e.target.value});
+                                                    setNewShipment({...newShipment, origin: e.target.value});
+                                                }}
+                                            />
+                                            <AnimatePresence>
+                                                {showCityDropdown.origin && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -10 }}
+                                                        className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border border-white/10 rounded-2xl shadow-2xl z-[210] max-h-48 overflow-y-auto no-scrollbar py-2"
+                                                    >
+                                                        {availableCities.filter(c => c.toLowerCase().includes(citySearch.origin.toLowerCase())).map(city => (
+                                                            <button 
+                                                                key={city}
+                                                                onClick={() => {
+                                                                    setNewShipment({...newShipment, origin: city});
+                                                                    setCitySearch({...citySearch, origin: city});
+                                                                    setShowCityDropdown({...showCityDropdown, origin: false});
+                                                                }}
+                                                                className="w-full text-left px-5 py-3 hover:bg-primary/20 text-xs font-bold text-slate-300 hover:text-white transition-colors flex items-center gap-3"
+                                                            >
+                                                                <MapPin size={12} className="text-primary" />
+                                                                {city}
+                                                            </button>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 relative">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Destination City</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Select Destination..."
+                                                className="w-full bg-[#0B1220] border border-white/5 rounded-2xl py-4 px-6 text-sm outline-none focus:border-primary transition-all text-white font-bold"
+                                                value={citySearch.destination || newShipment.destination}
+                                                onFocus={() => setShowCityDropdown({...showCityDropdown, destination: true})}
+                                                onChange={(e) => {
+                                                    setCitySearch({...citySearch, destination: e.target.value});
+                                                    setNewShipment({...newShipment, destination: e.target.value});
+                                                }}
+                                            />
+                                            <AnimatePresence>
+                                                {showCityDropdown.destination && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -10 }}
+                                                        className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border border-white/10 rounded-2xl shadow-2xl z-[210] max-h-48 overflow-y-auto no-scrollbar py-2"
+                                                    >
+                                                        {availableCities.filter(c => c.toLowerCase().includes(citySearch.destination.toLowerCase())).map(city => (
+                                                            <button 
+                                                                key={city}
+                                                                onClick={() => {
+                                                                    setNewShipment({...newShipment, destination: city});
+                                                                    setCitySearch({...citySearch, destination: city});
+                                                                    setShowCityDropdown({...showCityDropdown, destination: false});
+                                                                }}
+                                                                className="w-full text-left px-5 py-3 hover:bg-primary/20 text-xs font-bold text-slate-300 hover:text-white transition-colors flex items-center gap-3"
+                                                            >
+                                                                <MapPin size={12} className="text-primary" />
+                                                                {city}
+                                                            </button>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                </div>
+                                    <div className="h-full min-h-[350px] bg-slate-900/50 rounded-3xl border border-white/5 overflow-hidden relative">
+                                        <ShipmentMap 
+                                            origin={getCityCoords(newShipment.origin)} 
+                                            destination={getCityCoords(newShipment.destination)}
+                                            risk={0.1}
+                                        />
+                                    </div>
+                            </div>
+
+                            <div className="space-y-2 mb-10">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Preferred Carrier</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {['DHL', 'FedEx', 'Swift'].map(c => (
+                                        <button 
+                                            key={c}
+                                            onClick={() => setNewShipment({...newShipment, carrier: c})}
+                                            className={`py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${newShipment.carrier === c ? 'bg-primary/20 border-primary text-white' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                        >
+                                            {c}
+```
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={async () => {
+                                    if (!newShipment.origin || !newShipment.destination) return showToast('Please fill all fields', 'error');
+                                    
+                                    const analysisId = showToast(`AI is analyzing route ${newShipment.origin} → ${newShipment.destination}...`, 'info');
+                                    
+                                    try {
+                                        const res = await axios.post('http://127.0.0.1:5000/api/predict', {
+                                            origin: newShipment.origin,
+                                            destination: newShipment.destination,
+                                            distance: Math.floor(Math.random() * 2000) + 500,
+                                            carrier: newShipment.carrier,
+                                            weather: 'Clear',
+                                            traffic: 'Moderate'
+                                        });
+
+                                        const newEntry = {
+                                            id: `SHP${Math.floor(Math.random() * 100000)}`,
+                                            origin: newShipment.origin,
+                                            destination: newShipment.destination,
+                                            carrier: newShipment.carrier,
+                                            eta: `${res.data.eta_hours} hrs`,
+                                            risk: res.data.risk_score * 100,
+                                            status: res.data.risk_score > 0.6 ? 'Delayed' : 'On Time',
+                                            recommendation: res.data.recommendation
+                                        };
+
+                                        setShipments([createdShipment, ...shipments]);
+                                        setNewShipment({ origin: '', destination: '', carrier: 'DHL' });
+                                        showToast('New Shipment Registered Successfully', 'success');
+                                    } catch (err) {
+                                        showToast('AI analysis failed. Please try again.', 'error');
+                                    }
+                                }}
+                                className="w-full py-5 bg-gradient-to-r from-primary to-blue-600 text-white text-xs font-black uppercase tracking-[0.3em] rounded-[2rem] shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+                            >
+                                <Zap size={16} fill="currentColor" />
+                                Deploy Logistics Unit
+                            </button>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 

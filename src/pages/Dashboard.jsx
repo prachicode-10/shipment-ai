@@ -11,8 +11,12 @@ import {
     AlertTriangle,
     Zap,
     MapPin,
-    ArrowRight
+    ArrowRight,
+    Search,
+    ChevronDown,
+    X
 } from 'lucide-react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import LiveTrackingMap from '../components/LiveTrackingMap.jsx';
 
@@ -45,18 +49,42 @@ const StatCard = ({ title, value, description, icon: Icon, color }) => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const stored = localStorage.getItem('currentUser');
+        if (stored) {
+            try { return JSON.parse(stored); } catch (e) { return null; }
+        }
+        return null;
+    });
     const [activePrediction, setActivePrediction] = useState(null);
     const [formData, setFormData] = useState({ origin: '', destination: '' });
+    const [availableCities, setAvailableCities] = useState([]);
+    const [citySearch, setCitySearch] = useState({ origin: '', destination: '' });
+    const [showCityDropdown, setShowCityDropdown] = useState({ origin: false, destination: false });
 
     useEffect(() => {
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
-            setUser(JSON.parse(storedUser));
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (err) {
+                console.error('Session error:', err);
+                navigate('/login');
+            }
         } else {
             navigate('/login');
         }
-    }, [navigate, setUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
+        const fetchCities = async () => {
+            try {
+                const res = await axios.get('http://127.0.0.1:5000/api/cities');
+                setAvailableCities(res.data);
+            } catch (err) {
+                console.error('Error fetching cities:', err);
+            }
+        };
+        fetchCities();
+    }, [navigate, setUser]);
 
     const handleLogout = () => {
         localStorage.removeItem('currentUser');
@@ -70,7 +98,14 @@ const Dashboard = () => {
         }
     };
 
-    if (!user) return null;
+    const filterCities = (query) => {
+        if (!query) return [];
+        return availableCities.filter(city => 
+            city.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 5);
+    };
+
+    if (!user) return <div className="min-h-screen bg-[#0B1220]" />;
 
     return (
         <div className="min-h-screen bg-[#050505] text-slate-300 flex overflow-hidden">
@@ -185,9 +220,39 @@ const Dashboard = () => {
                                             type="text" 
                                             placeholder="e.g., Delhi" 
                                             className="w-full bg-[#050505] border border-white/10 rounded-2xl py-3.5 pl-10 pr-4 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-800"
-                                            value={formData.origin}
-                                            onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
+                                            value={formData.origin || citySearch.origin}
+                                            onChange={(e) => {
+                                                setCitySearch({ ...citySearch, origin: e.target.value });
+                                                setFormData({ ...formData, origin: '' });
+                                                setShowCityDropdown({ ...showCityDropdown, origin: true });
+                                            }}
+                                            onFocus={() => setShowCityDropdown({ ...showCityDropdown, origin: true })}
                                         />
+                                        <AnimatePresence>
+                                            {showCityDropdown.origin && filterCities(citySearch.origin).length > 0 && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute z-[100] w-full mt-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+                                                >
+                                                    {filterCities(citySearch.origin).map((city, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            type="button"
+                                                            className="w-full px-4 py-3 text-left text-xs font-bold text-slate-300 hover:bg-primary/20 hover:text-white transition-colors border-b border-white/5 last:border-0"
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, origin: city });
+                                                                setCitySearch({ ...citySearch, origin: city });
+                                                                setShowCityDropdown({ ...showCityDropdown, origin: false });
+                                                            }}
+                                                        >
+                                                            {city}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </div>
 
@@ -201,9 +266,39 @@ const Dashboard = () => {
                                             type="text" 
                                             placeholder="e.g., Mumbai" 
                                             className="w-full bg-[#050505] border border-white/10 rounded-2xl py-3.5 pl-10 pr-4 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-slate-800"
-                                            value={formData.destination}
-                                            onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                                            value={formData.destination || citySearch.destination}
+                                            onChange={(e) => {
+                                                setCitySearch({ ...citySearch, destination: e.target.value });
+                                                setFormData({ ...formData, destination: '' });
+                                                setShowCityDropdown({ ...showCityDropdown, destination: true });
+                                            }}
+                                            onFocus={() => setShowCityDropdown({ ...showCityDropdown, destination: true })}
                                         />
+                                        <AnimatePresence>
+                                            {showCityDropdown.destination && filterCities(citySearch.destination).length > 0 && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute z-[100] w-full mt-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+                                                >
+                                                    {filterCities(citySearch.destination).map((city, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            type="button"
+                                                            className="w-full px-4 py-3 text-left text-xs font-bold text-slate-300 hover:bg-primary/20 hover:text-white transition-colors border-b border-white/5 last:border-0"
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, destination: city });
+                                                                setCitySearch({ ...citySearch, destination: city });
+                                                                setShowCityDropdown({ ...showCityDropdown, destination: false });
+                                                            }}
+                                                        >
+                                                            {city}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </div>
 

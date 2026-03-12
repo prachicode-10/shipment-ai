@@ -90,6 +90,8 @@ const LiveTrackingMap = ({ activePrediction }) => {
     const [congestionPoints, setCongestionPoints] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [predictionError, setPredictionError] = useState(null);
+    const [truckProgress, setTruckProgress] = useState(0);
+    const [truckCoords, setTruckCoords] = useState(null);
 
     // Fallback coordinates for major cities (Reliability backup)
     const fallbackCoords = {
@@ -241,6 +243,7 @@ const LiveTrackingMap = ({ activePrediction }) => {
             setPredictionError(err.message || "Failed to calculate prediction. Please try again.");
         } finally {
             setIsLoading(false);
+            setTruckProgress(0);
         }
     };
 
@@ -248,8 +251,58 @@ const LiveTrackingMap = ({ activePrediction }) => {
         if (activePrediction) {
             console.log("activePrediction changed, triggering fetch:", activePrediction);
             fetchPredictionData(activePrediction.origin, activePrediction.destination);
+        } else {
+            // Default India view
+            setViewState({
+                latitude: 20.5937,
+                longitude: 78.9629,
+                zoom: 4,
+                transitionDuration: 1000
+            });
         }
     }, [activePrediction]);
+
+    // Animation loop for the truck
+    useEffect(() => {
+        if (!routeGeoJSON) {
+            setTruckCoords(null);
+            return;
+        }
+
+        let animationFrame;
+        const speed = 0.002; // Adjust for faster/slower movement
+
+        const animate = () => {
+            setTruckProgress(prev => {
+                const next = prev + speed;
+                if (next >= 1) return 0; // Loop animation
+                return next;
+            });
+            animationFrame = requestAnimationFrame(animate);
+        };
+
+        animationFrame = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationFrame);
+    }, [routeGeoJSON]);
+
+    // Interpolate truck position along the route
+    useEffect(() => {
+        if (!routeGeoJSON || !routeGeoJSON.coordinates || routeGeoJSON.coordinates.length < 2) return;
+
+        const coords = routeGeoJSON.coordinates;
+        const totalPoints = coords.length;
+        const index = Math.floor(truckProgress * (totalPoints - 1));
+        const nextIndex = Math.min(index + 1, totalPoints - 1);
+        const remainder = (truckProgress * (totalPoints - 1)) - index;
+
+        const currentPoint = coords[index];
+        const nextPoint = coords[nextIndex];
+
+        const interpolatedLng = currentPoint[0] + (nextPoint[0] - currentPoint[0]) * remainder;
+        const interpolatedLat = currentPoint[1] + (nextPoint[1] - currentPoint[1]) * remainder;
+
+        setTruckCoords([interpolatedLng, interpolatedLat]);
+    }, [truckProgress, routeGeoJSON]);
 
     // MAPBOX TOKEN - Placeholder for user to replace
     const MAPBOX_TOKEN = 'pk.eyJ1IjoicHJhY2hpc2hhcm1hIiwiYSI6ImNsdTM2YjJ6bzEzb2gybm8yZzJ6bzJ6bzIifQ.X9z4-X8z4-X8z4-X8z4'; // Publicly available for demo or placeholder
@@ -486,7 +539,7 @@ const LiveTrackingMap = ({ activePrediction }) => {
 
                 {/* Dynamic Predicted Route (External Repo Feature) */}
                 {routeGeoJSON && (
-                    <Source type="geojson" data={{
+                    <Source id="predicted-route-source" type="geojson" data={{
                         type: 'Feature',
                         geometry: routeGeoJSON
                     }}>
@@ -511,6 +564,49 @@ const LiveTrackingMap = ({ activePrediction }) => {
                             }}
                         />
                     </Source>
+                )}
+
+                {/* Origin and Destination Markers */}
+                {routeGeoJSON && routeGeoJSON.coordinates && routeGeoJSON.coordinates.length >= 2 && (
+                    <>
+                        <Marker 
+                            longitude={routeGeoJSON.coordinates[0][0]} 
+                            latitude={routeGeoJSON.coordinates[0][1]}
+                            anchor="bottom"
+                        >
+                            <div className="flex flex-col items-center">
+                                <div className="px-2 py-1 bg-slate-900 border border-white/10 rounded-md mb-1 shadow-2xl">
+                                    <p className="text-[8px] font-black text-primary uppercase">{predictionData?.origin || 'Origin'}</p>
+                                </div>
+                                <div className="w-3 h-3 bg-primary rounded-full border-2 border-white shadow-glow" />
+                            </div>
+                        </Marker>
+                        <Marker 
+                            longitude={routeGeoJSON.coordinates[routeGeoJSON.coordinates.length - 1][0]} 
+                            latitude={routeGeoJSON.coordinates[routeGeoJSON.coordinates.length - 1][1]}
+                            anchor="bottom"
+                        >
+                            <div className="flex flex-col items-center">
+                                <div className="px-2 py-1 bg-slate-900 border border-white/10 rounded-md mb-1 shadow-2xl">
+                                    <p className="text-[8px] font-black text-indigo-400 uppercase">{predictionData?.destination || 'Destination'}</p>
+                                </div>
+                                <MapPin size={24} className="text-indigo-500 filter drop-shadow-glow" />
+                            </div>
+                        </Marker>
+                    </>
+                )}
+
+                {/* Animated Truck */}
+                {truckCoords && (
+                    <Marker longitude={truckCoords[0]} latitude={truckCoords[1]} anchor="center">
+                        <motion.div 
+                            className="p-2 bg-white rounded-xl shadow-2xl border-2 border-primary"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                        >
+                            <Truck className="text-primary w-5 h-5" />
+                        </motion.div>
+                    </Marker>
                 )}
 
                 {/* Congestion Points (TomTom style) */}
@@ -548,7 +644,7 @@ const LiveTrackingMap = ({ activePrediction }) => {
                 {filteredShipments.map(s => (
                     <React.Fragment key={s.id}>
                         {/* Route Line (Simulated with SVG or Layer if needed, using simple Source/Layer) */}
-                        <Source type="geojson" data={{
+                        <Source id={`source-${s.id}`} type="geojson" data={{
                             type: 'Feature',
                             geometry: {
                                 type: 'LineString',
@@ -688,7 +784,7 @@ const LiveTrackingMap = ({ activePrediction }) => {
             </Map>
 
             {/* Custom Styling for Mapbox Popups to make them transparent/glassmorphism */}
-            <style jsx global>{`
+            <style>{`
                 .mapboxgl-popup-content {
                     background: transparent !important;
                     padding: 0 !important;

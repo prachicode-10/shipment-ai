@@ -10,6 +10,10 @@ import {
     Filter, Zap, ShieldCheck, Activity, Globe, ChevronDown, RefreshCw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import ShipmentMap from '../components/ShipmentMap.jsx';
+import { getCityCoords } from '../utils/cityUtils.js';
+
 
 // --- MOCK DATA ---
 const SHIPMENT_DATA = [
@@ -151,16 +155,51 @@ const ChartCard = ({ title, children, className = "" }) => (
 
 const Analytics = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const stored = localStorage.getItem('currentUser');
+        if (stored) {
+            try { return JSON.parse(stored); } catch (e) { return null; }
+        }
+        return null;
+    });
     const [dateRange, setDateRange] = useState('Last 7 days');
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('currentUser');
-        if (storedUser) setUser(JSON.parse(storedUser));
-        else navigate('/login');
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (err) {
+                console.error('Session error:', err);
+                navigate('/login');
+            }
+        } else {
+            navigate('/login');
+        }
+
+        const fetchData = async () => {
+            try {
+                const res = await axios.get('http://127.0.0.1:5000/api/shipments/history');
+                setHistory(res.data);
+            } catch (err) {
+                console.error('Error fetching analytics history:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
     }, [navigate]);
 
-    if (!user) return null;
+    // Derived Metrics
+    const totalShipments = 1284 + history.length; // Baseline + new
+    const delayedCount = history.filter(s => s.delay === '1').length || 12;
+    const onTimeRate = (((totalShipments - delayedCount) / totalShipments) * 100).toFixed(1);
+    const highRiskCount = history.filter(s => parseFloat(s.Port_Congestion) > 3).length || 42;
+
+    if (!user) return <div className="min-h-screen bg-[#0B1220]" />;
 
     return (
         <div className="min-h-screen bg-[#0B1220] text-slate-300 font-sans selection:bg-primary/30 overflow-hidden flex">
@@ -235,25 +274,44 @@ const Analytics = () => {
                     title="Logistics Analytics" 
                     subtitle="Analyze shipment performance, detect risks early, and optimize logistics operations using AI-powered insights."
                 >
-                    <div className="flex bg-[#0A0A0A] p-1 rounded-2xl border border-white/5">
-                        {['Last 7 days', 'Last 30 days', 'Last 90 days'].map((range) => (
-                            <button
-                                key={range}
-                                onClick={() => setDateRange(range)}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${dateRange === range ? 'bg-primary text-white shadow-glow' : 'text-slate-500 hover:text-slate-300'}`}
-                            >
-                                {range}
-                            </button>
-                        ))}
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${showFilters ? 'bg-primary border-primary text-white shadow-glow' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                        >
+                            <Filter size={14} />
+                            {showFilters ? 'Hide Filters' : 'Toggle Filters'}
+                        </button>
+
+                        <AnimatePresence>
+                            {showFilters && (
+                                <motion.div 
+                                    initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                                    className="flex bg-[#0A0A0A] p-1 rounded-2xl border border-white/5 shadow-2xl"
+                                >
+                                    {['Last 7 days', 'Last 30 days', 'Last 90 days'].map((range) => (
+                                        <button
+                                            key={range}
+                                            onClick={() => setDateRange(range)}
+                                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${dateRange === range ? 'bg-primary text-white shadow-glow' : 'text-slate-500 hover:text-slate-300'}`}
+                                        >
+                                            {range}
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </SectionHeader>
 
                 {/* 3. Summary Metrics Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-                    <StatCard title="Total Shipments" value="12,584" trend="up" trendValue="12" icon={Package} color="blue" />
-                    <StatCard title="On-Time Deliveries" value="11,202" trend="up" trendValue="5" icon={ShieldCheck} color="emerald" />
-                    <StatCard title="Delayed Shipments" value="184" trend="down" trendValue="8" icon={Clock} color="rose" />
-                    <StatCard title="AI Risk Alerts" value="42" trend="up" trendValue="15" icon={AlertTriangle} color="amber" />
+                    <StatCard title="Total Shipments" value={totalShipments.toLocaleString()} trend="up" trendValue="12" icon={Package} color="blue" />
+                    <StatCard title="On-Time Deliveries" value={(totalShipments - delayedCount).toLocaleString()} trend="up" trendValue="5" icon={ShieldCheck} color="emerald" />
+                    <StatCard title="Delayed Shipments" value={delayedCount.toLocaleString()} trend="down" trendValue="8" icon={Clock} color="rose" />
+                    <StatCard title="AI Risk Alerts" value={highRiskCount.toString()} trend="up" trendValue="15" icon={AlertTriangle} color="amber" />
                 </div>
 
                 {/* 4. & 13. Charts Grid */}
@@ -391,26 +449,23 @@ const Analytics = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
                     {/* 9. Geographic Logistics Map (Placeholder) */}
-                    <ChartCard title="Geographic Logistics Insights" className="lg:col-span-8">
-                        <div className="h-[400px] w-full bg-slate-950/50 rounded-3xl border border-white/5 relative overflow-hidden flex items-center justify-center">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1)_0%,transparent_70%)]" />
-                            <div className="text-center relative z-10 space-y-4">
-                                <div className="p-6 bg-primary/10 rounded-full inline-block animate-pulse">
-                                    <Globe size={48} className="text-primary" />
+                    <ChartCard title="Geographic Logistics Insights" className="lg:col-span-8 p-0">
+                        <div className="h-[432px] w-full rounded-3xl overflow-hidden relative">
+                            <ShipmentMap 
+                                origin={null} 
+                                destination={null} 
+                                risk={0.2}
+                                path={[]}
+                            />
+                            {/* Stats Overlay for Map */}
+                            <div className="absolute bottom-6 left-6 z-[1000] flex gap-4">
+                                <div className="bg-[#111827]/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 shadow-2xl">
+                                    <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Active Hubs</p>
+                                    <p className="text-sm font-black text-white italic">24 INDIA NODES</p>
                                 </div>
-                                <div>
-                                    <p className="text-lg font-black text-white italic tracking-widest uppercase">Global Network Map</p>
-                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-2">Active Data Stream Integration Pending</p>
-                                </div>
-                                <div className="flex justify-center gap-8 pt-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                        <span className="text-[10px] font-black uppercase tracking-tight text-slate-400">Low Congestion</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-rose-500" />
-                                        <span className="text-[10px] font-black uppercase tracking-tight text-slate-400">Critical Delays</span>
-                                    </div>
+                                <div className="bg-[#111827]/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 shadow-2xl">
+                                    <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Network Load</p>
+                                    <p className="text-sm font-black text-emerald-400 italic">OPTIMAL</p>
                                 </div>
                             </div>
                         </div>
