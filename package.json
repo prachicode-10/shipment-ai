@@ -12,6 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.69",
     "axios": "^1.13.6",
     "body-parser": "^2.2.2",
     "clsx": "^2.1.1",

@@ -28,7 +28,7 @@ const data = [
 
 const DashboardPreview = () => {
     return (
-        <section id="dashboard" className="py-24 bg-slate-50/50">
+        <section id="dashboard" className="py-24 bg-background">
             <div className="container mx-auto px-6">
                 <div className="flex flex-col lg:flex-row gap-16 items-center">
                     {/* Left Text */}
@@ -38,13 +38,14 @@ const DashboardPreview = () => {
                         viewport={{ once: true }}
                         className="lg:w-1/3 space-y-6"
                     >
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-indigo-100 text-indigo-600 font-bold text-sm">
+                        <div className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary font-bold text-sm tracking-widest uppercase shadow-glow">
                             INSIGHTS DASHBOARD
                         </div>
-                        <h2 className="text-4xl font-bold leading-tight">
-                            Control the Chaos with <span className="text-primary">Live Data Visuals</span>
+                        <h2 className="text-4xl font-bold leading-tight text-white">
+                            Control the Chaos with <br />
+                            <span className="premium-gradient-text">Live Data Visuals</span>
                         </h2>
-                        <p className="text-slate-500 text-lg">
+                        <p className="text-slate-400 text-lg">
                             Manage your entire fleet's risk profile from a single, AI-powered control center.
                         </p>
 
@@ -54,8 +55,8 @@ const DashboardPreview = () => {
                                 { icon: <Clock className="text-blue-500" />, text: 'Real-time delay notifications' },
                                 { icon: <Map className="text-indigo-500" />, text: 'Global shipment fleet view' },
                             ].map((item, i) => (
-                                <li key={i} className="flex items-center gap-3 font-medium">
-                                    <div className="w-8 h-8 rounded-lg bg-white shadow-soft flex items-center justify-center">
+                                <li key={i} className="flex items-center gap-3 font-medium text-slate-300">
+                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 shadow-soft flex items-center justify-center">
                                         {item.icon}
                                     </div>
                                     {item.text}
@@ -71,15 +72,15 @@ const DashboardPreview = () => {
                         viewport={{ once: true }}
                         className="lg:w-2/3 w-full"
                     >
-                        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+                        <div className="bg-[#0f121a] rounded-3xl shadow-2xl overflow-hidden border border-white/10">
                             {/* Dashboard Header */}
-                            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
                                 <div className="flex gap-2">
                                     <div className="w-3 h-3 rounded-full bg-red-400"></div>
                                     <div className="w-3 h-3 rounded-full bg-amber-400"></div>
                                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                                 </div>
-                                <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">ShipmentGuard Terminal v2.0</div>
+                                <div className="text-sm font-bold text-slate-500 uppercase tracking-widest">ShipmentGuard Terminal v2.0</div>
                             </div>
 
                             {/* Dashboard Content */}
@@ -92,13 +93,16 @@ const DashboardPreview = () => {
                                             <AreaChart data={data}>
                                                 <defs>
                                                     <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.1} />
+                                                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2} />
                                                         <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
                                                     </linearGradient>
                                                 </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                                                <Tooltip 
+                                                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.4)', color: '#fff' }} 
+                                                    itemStyle={{ color: '#fff' }}
+                                                />
                                                 <Area type="monotone" dataKey="risk" stroke="#2563EB" strokeWidth={3} fillOpacity={1} fill="url(#colorRisk)" />
                                             </AreaChart>
                                         </ResponsiveContainer>
@@ -106,13 +110,13 @@ const DashboardPreview = () => {
 
                                     {/* Mini Stats Grid */}
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
-                                            <p className="text-xs font-bold text-indigo-400">LIVE SHIPMENTS</p>
-                                            <p className="text-2xl font-bold text-indigo-700">1,248</p>
+                                        <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20">
+                                            <p className="text-xs font-bold text-primary">LIVE SHIPMENTS</p>
+                                            <p className="text-2xl font-bold text-white uppercase tabular-nums tracking-tighter">1,248</p>
                                         </div>
-                                        <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
-                                            <p className="text-xs font-bold text-amber-400">AT RISK</p>
-                                            <p className="text-2xl font-bold text-amber-700">42</p>
+                                        <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                                            <p className="text-xs font-bold text-amber-500">AT RISK</p>
+                                            <p className="text-2xl font-bold text-white uppercase tabular-nums tracking-tighter">42</p>
                                         </div>
                                     </div>
                                 </div>

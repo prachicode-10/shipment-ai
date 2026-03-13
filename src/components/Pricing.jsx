@@ -30,11 +30,11 @@ const tiers = [
 
 const Pricing = () => {
     return (
-        <section id="pricing" className="py-24 bg-slate-50/50">
+        <section id="pricing" className="py-24 bg-background">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
-                    <h2 className="text-4xl font-bold mb-4 italic">Pricing Plans</h2>
-                    <p className="text-slate-500">Transparent pricing built to scale with your logistics volume.</p>
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 italic text-white">Pricing Plans</h2>
+                    <p className="text-slate-400">Transparent pricing built to scale with your logistics volume.</p>
                 </div>
 
                 <motion.div
@@ -50,12 +50,12 @@ const Pricing = () => {
                             variants={fadeIn('up', 0.1 * i)}
                             whileHover={{ y: -10 }}
                             className={`relative p-8 rounded-3xl transition-all duration-300 ${tier.highlighted
-                                    ? 'bg-dark text-white shadow-glow scale-105 z-10'
-                                    : 'bg-white text-dark shadow-soft border border-slate-100 hover:border-primary/20'
+                                    ? 'bg-primary/10 text-white shadow-glow scale-105 z-10 border border-primary/30'
+                                    : 'bg-white/[0.03] text-white shadow-soft border border-white/10 hover:border-primary/20'
                                 }`}
                         >
                             {tier.highlighted && (
-                                <div className="absolute top-0 right-8 -translate-y-1/2 gradient-bg px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-white">
+                                <div className="absolute top-0 right-8 -translate-y-1/2 gradient-bg px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-white shadow-lg">
                                     Most Popular
                                 </div>
                             )}
@@ -79,9 +79,9 @@ const Pricing = () => {
 
                             <Link 
                                 to={tier.price === 'Custom' ? '/#contact' : '/signup'}
-                                className={`w-full py-4 rounded-xl font-bold transition-all text-center block ${tier.highlighted
-                                    ? 'gradient-bg hover:opacity-90 text-white'
-                                    : 'bg-primary/10 text-primary hover:bg-primary/20'
+                                className={`w-full py-5 rounded-2xl font-black transition-all text-center block text-lg hover:scale-105 active:scale-95 hover:shadow-glow ${tier.highlighted
+                                    ? 'gradient-bg text-white'
+                                    : 'bg-white/10 text-white border border-white/10 hover:bg-white/20'
                                 }`}
                             >
                                 {tier.price === 'Custom' ? 'Contact Sales' : 'Start Free Trial'}

@@ -63,10 +63,11 @@ const Features = () => {
                     <motion.p variants={fadeIn('up', 0.1)} className="text-primary font-bold tracking-widest uppercase text-sm mb-3">
                         Core capabilities
                     </motion.p>
-                    <motion.h2 variants={fadeIn('up', 0.2)} className="text-4xl md:text-5xl font-bold mb-4">
-                        Powerful Features for <span className="gradient-text">Precision Logistics</span>
+                    <motion.h2 variants={fadeIn('up', 0.2)} className="text-4xl md:text-5xl font-bold mb-4 text-white">
+                        Powerful Features for <br />
+                        <span className="premium-gradient-text">Precision Logistics</span>
                     </motion.h2>
-                    <motion.p variants={fadeIn('up', 0.3)} className="text-slate-500 max-w-2xl mx-auto">
+                    <motion.p variants={fadeIn('up', 0.3)} className="text-slate-400 max-w-2xl mx-auto">
                         Our platform leverages petabytes of historical data to provide the most accurate shipping foresight in the industry.
                     </motion.p>
                 </motion.div>
@@ -88,8 +89,8 @@ const Features = () => {
                             <div className={`w-14 h-14 ${feature.color} text-white rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300 shadow-lg`}>
                                 {feature.icon}
                             </div>
-                            <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">{feature.title}</h3>
-                            <p className="text-slate-500 leading-relaxed">
+                            <h3 className="text-xl font-bold mb-3 text-white group-hover:text-primary transition-colors">{feature.title}</h3>
+                            <p className="text-slate-400 leading-relaxed">
                                 {feature.desc}
                             </p>
                         </motion.div>

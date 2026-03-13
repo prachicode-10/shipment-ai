@@ -5,17 +5,28 @@
   --color-primary: #2563EB;
   --color-secondary-start: #6366F1;
   --color-secondary-end: #3B82F6;
-  --color-background: #F8FAFC;
+  --color-background: #05070a;
   --color-dark: #0F172A;
-  --color-card: #FFFFFF;
+  --color-card: #0f121a;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.3);
-  --shadow-glow-purple: 0 0 20px rgba(168, 85, 247, 0.2);
-  --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.2);
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.4);
+  --shadow-glow-purple: 0 0 20px rgba(168, 85, 247, 0.3);
+  --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.3);
+
+  @keyframes spotlight {
+    0% {
+      opacity: 0;
+      transform: translate(-72%, -62%) scale(0.5);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, -40%) scale(1.2);
+    }
+  }
 }
 
 :root {
@@ -24,7 +35,7 @@
 }
 
 body {
-  @apply bg-background text-slate-800 font-sans;
+  @apply bg-background text-slate-200 font-sans;
   overflow-x: hidden;
 }
 
@@ -40,6 +51,10 @@ body {
 .sidebar-item-active {
   background: var(--brand-gradient);
   @apply text-white shadow-glow-purple scale-105;
+}
+
+.gradient-bg {
+  background: var(--brand-gradient);
 }
 
 .premium-gradient-text {

@@ -36,12 +36,12 @@ const CTA = () => {
                             variants={fadeIn('up', 0.3)}
                             className="flex flex-wrap justify-center gap-6 pt-4"
                         >
-                            <Link to="/signup" className="px-10 py-5 bg-white text-primary rounded-full text-lg font-bold hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-3 group">
+                            <Link to="/signup" className="px-12 py-5 bg-white text-primary rounded-full text-xl font-black hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-95 transition-all flex items-center gap-3 group">
                                 Start Free Trial
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                             </Link>
-                            <Link to="/login" className="px-10 py-5 bg-indigo-600/30 border-2 border-white/20 hover:bg-indigo-600/50 rounded-full text-lg font-bold transition-all flex items-center gap-3">
-                                <Mail className="w-5 h-5" />
+                            <Link to="/dashboard" className="px-12 py-5 bg-white/10 backdrop-blur-md border-2 border-white/20 hover:bg-white/20 hover:scale-110 active:scale-95 rounded-full text-xl font-bold transition-all flex items-center gap-3">
+                                <Mail className="w-6 h-6" />
                                 Book Demo
                             </Link>
                         </motion.div>

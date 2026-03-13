@@ -45,15 +45,15 @@ const Navbar = () => {
 
     return (
         <nav
-            className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md py-3 shadow-soft' : 'bg-transparent py-5'
+            className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-background/80 backdrop-blur-md py-3 shadow-soft border-b border-white/5' : 'bg-transparent py-5'
                 }`}
         >
             <div className="container mx-auto px-6 flex justify-between items-center">
                 <Link to="/" className="flex items-center gap-2 group">
-                    <div className="bg-primary p-1.5 rounded-lg group-hover:rotate-12 transition-transform duration-300">
+                    <div className="bg-primary p-1.5 rounded-lg group-hover:rotate-12 transition-transform duration-300 shadow-glow">
                         <Shield className="text-white w-6 h-6" />
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-dark">
+                    <span className="text-xl font-bold tracking-tight text-white">
                         ShipmentGuard <span className="text-primary">AI</span>
                     </span>
                 </Link>
@@ -61,7 +61,7 @@ const Navbar = () => {
                 {/* Desktop Nav */}
                 <div className="hidden md:flex items-center gap-8">
                     {navLinks.map((link) => (
-                        <Link key={link.name} to={link.href} className="nav-link">
+                        <Link key={link.name} to={link.href} className="text-slate-300 hover:text-white transition-colors font-medium">
                             {link.name}
                         </Link>
                     ))}
@@ -75,10 +75,10 @@ const Navbar = () => {
                         </Link>
                     ) : (
                         <>
-                            <Link to="/login" className="px-5 py-2 text-sm font-semibold border-2 border-primary/20 text-primary rounded-full hover:bg-primary/5 transition-all text-center">
+                            <Link to="/login" className="px-5 py-2 text-sm font-semibold border-2 border-primary/20 text-white rounded-full hover:bg-primary/5 transition-all text-center">
                                 Login
                             </Link>
-                            <Link to="/signup" className="px-5 py-2 text-sm font-semibold gradient-bg rounded-full hover:shadow-glow transition-all text-center">
+                            <Link to="/signup" className="px-5 py-2 text-sm font-semibold gradient-bg text-white rounded-full hover:shadow-glow transition-all text-center">
                                 Sign Up Free
                             </Link>
                         </>
@@ -86,7 +86,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Mobile Toggle */}
-                <button className="md:hidden text-dark" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                     {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
@@ -96,13 +96,13 @@ const Navbar = () => {
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="md:hidden absolute top-full left-0 w-full bg-white shadow-xl py-6 px-6 flex flex-col gap-4"
+                    className="md:hidden absolute top-full left-0 w-full bg-background border-b border-white/5 shadow-xl py-6 px-6 flex flex-col gap-4"
                 >
                     {navLinks.map((link) => (
                         <a
                             key={link.name}
                             href={link.href}
-                            className="text-lg font-medium text-dark hover:text-primary transition-colors"
+                            className="text-lg font-medium text-white hover:text-primary transition-colors"
                             onClick={() => setMobileMenuOpen(false)}
                         >
                             {link.name}

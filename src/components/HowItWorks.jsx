@@ -26,7 +26,7 @@ const steps = [
 
 const HowItWorks = () => {
     return (
-        <section className="py-24 bg-white">
+        <section className="py-24 bg-background">
             <div className="container mx-auto px-6 text-center">
                 <motion.div
                     variants={staggerContainer(0.2, 0.1)}
@@ -35,15 +35,15 @@ const HowItWorks = () => {
                     viewport={{ once: true, amount: 0.2 }}
                     className="mb-20"
                 >
-                    <motion.h2 variants={fadeIn('up', 0.1)} className="text-4xl font-bold mb-4">How It Works</motion.h2>
-                    <motion.p variants={fadeIn('up', 0.2)} className="text-slate-500 max-w-2xl mx-auto">
+                    <motion.h2 variants={fadeIn('up', 0.1)} className="text-4xl md:text-5xl font-bold mb-4 text-white">How It Works</motion.h2>
+                    <motion.p variants={fadeIn('up', 0.2)} className="text-slate-400 max-w-2xl mx-auto">
                         Three simple steps to transition from reactive troubleshooting to proactive logistics.
                     </motion.p>
                 </motion.div>
 
                 <div className="relative">
                     {/* Connector Line (Desktop) */}
-                    <div className="hidden lg:block absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 z-0"></div>
+                    <div className="hidden lg:block absolute top-1/2 left-0 w-full h-[1px] bg-white/5 -translate-y-1/2 z-0"></div>
 
                     <motion.div
                         variants={staggerContainer(0.3, 0.1)}
@@ -56,16 +56,16 @@ const HowItWorks = () => {
                             <motion.div
                                 key={index}
                                 variants={fadeIn('up', 0.1 * index)}
-                                className="flex flex-col items-center bg-white p-6"
+                                className="flex flex-col items-center bg-white/[0.03] backdrop-blur-sm border border-white/5 p-8 rounded-[2rem] hover:bg-white/[0.05] transition-colors group"
                             >
-                                <div className={`w-20 h-20 ${step.color} text-white rounded-3xl flex items-center justify-center mb-8 shadow-xl relative`}>
+                                <div className={`w-20 h-20 ${step.color} text-white rounded-3xl flex items-center justify-center mb-8 shadow-xl relative group-hover:scale-110 transition-transform`}>
                                     {step.icon}
-                                    <div className="absolute -top-3 -right-3 w-8 h-8 bg-dark text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    <div className="absolute -top-3 -right-3 w-8 h-8 bg-white text-dark rounded-full flex items-center justify-center font-black text-sm shadow-lg">
                                         {index + 1}
                                     </div>
                                 </div>
-                                <h3 className="text-2xl font-bold mb-4">{step.title}</h3>
-                                <p className="text-slate-500 leading-relaxed max-w-xs mx-auto text-center">
+                                <h3 className="text-2xl font-bold mb-4 text-white uppercase tracking-tight">{step.title}</h3>
+                                <p className="text-slate-400 leading-relaxed max-w-xs mx-auto text-center">
                                     {step.desc}
                                 </p>
                             </motion.div>
